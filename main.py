@@ -32,6 +32,8 @@ def main():
     file_count = 0
     last_row_num = {}
     for filename in filenames:
+        if not filename.endswith('xls') or filename.endswith('xlsx'):
+            continue
         fullname = os.path.join(mypath, filename)
 
         converted_original_book = open_xls_as_xlsx(fullname)
