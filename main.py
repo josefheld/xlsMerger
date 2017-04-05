@@ -85,7 +85,7 @@ def main():
 
 
 
-    dest_filename = 'Zusammengefasste_Dateien.xlsx'
+    dest_filename = 'Merged.xlsx'
 
     combined_wb.save(filename=dest_filename)
 
