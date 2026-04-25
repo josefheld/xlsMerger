@@ -64,7 +64,7 @@ def test_profile_config_rejects_non_mapping_options(tmp_path: Path) -> None:
 def test_cli_reports_unknown_mode_as_validation_error(tmp_path: Path) -> None:
     report_path = tmp_path / "report.json"
 
-    exit_code = cli_main.main(["--mode", "unknown", "--report", str(report_path)])
+    exit_code = cli_main.main(["run", "--mode", "unknown", "--report", str(report_path)])
 
     payload = json.loads(report_path.read_text(encoding="utf-8"))
     assert exit_code == 1
@@ -104,7 +104,14 @@ def test_cli_uses_registered_profile_without_core_changes(
     monkeypatch.setitem(PROFILE_REGISTRY, TestDropHeaderProfile.name, TestDropHeaderProfile)
 
     exit_code = cli_main.main(
-        [str(input_path), "--mode", TestDropHeaderProfile.name, "--report", str(report_path)]
+        [
+            "run",
+            str(input_path),
+            "--mode",
+            TestDropHeaderProfile.name,
+            "--report",
+            str(report_path),
+        ]
     )
 
     payload = json.loads(report_path.read_text(encoding="utf-8"))

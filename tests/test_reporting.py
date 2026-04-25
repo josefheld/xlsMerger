@@ -68,10 +68,16 @@ def test_csv_report_export_contains_summary_file_and_issue_rows(tmp_path: Path) 
 def test_cli_run_writes_machine_readable_report_for_success(tmp_path: Path) -> None:
     input_path = tmp_path / "input.xlsx"
     report_path = tmp_path / "run-report.json"
-    write_xlsx(input_path, [["name"], ["A"]])
+    write_xlsx(
+        input_path,
+        [
+            ["employee_id", "first_name", "last_name", "hire_date"],
+            ["EMP-001", "Ada", "Lovelace", "2026-01-01"],
+        ],
+    )
 
     exit_code = cli_main.main(
-        [str(input_path), "--mode", "supplier_normalizer", "--report", str(report_path)]
+        ["run", str(input_path), "--mode", "hr_consolidator", "--report", str(report_path)]
     )
 
     payload = json.loads(report_path.read_text(encoding="utf-8"))
@@ -85,7 +91,7 @@ def test_cli_run_writes_machine_readable_report_for_validation_error(tmp_path: P
     input_path = tmp_path / "missing.xlsx"
     report_path = tmp_path / "run-report.json"
 
-    exit_code = cli_main.main([str(input_path), "--report", str(report_path)])
+    exit_code = cli_main.main(["run", str(input_path), "--report", str(report_path)])
 
     payload = json.loads(report_path.read_text(encoding="utf-8"))
     assert exit_code == ExitCode.VALIDATION_ERROR
@@ -97,13 +103,20 @@ def test_cli_run_writes_machine_readable_report_for_validation_error(tmp_path: P
 def test_cli_run_writes_csv_report_when_requested(tmp_path: Path) -> None:
     input_path = tmp_path / "input.xlsx"
     report_path = tmp_path / "run-report.csv"
-    write_xlsx(input_path, [["name"], ["A"]])
+    write_xlsx(
+        input_path,
+        [
+            ["employee_id", "first_name", "last_name", "hire_date"],
+            ["EMP-001", "Ada", "Lovelace", "2026-01-01"],
+        ],
+    )
 
     exit_code = cli_main.main(
         [
+            "run",
             str(input_path),
             "--mode",
-            "supplier_normalizer",
+            "hr_consolidator",
             "--report",
             str(report_path),
             "--report-format",
@@ -115,6 +128,35 @@ def test_cli_run_writes_csv_report_when_requested(tmp_path: Path) -> None:
     assert exit_code == ExitCode.SUCCESS
     assert rows[0]["record_type"] == "summary"
     assert rows[1]["record_type"] == "file"
+
+
+def test_cli_validate_writes_report_without_transforming(tmp_path: Path) -> None:
+    input_path = tmp_path / "input.xlsx"
+    report_path = tmp_path / "validate-report.json"
+    write_xlsx(
+        input_path,
+        [
+            ["employee_id", "first_name", "last_name", "hire_date"],
+            ["EMP-001", "Ada", "Lovelace", "2026-01-01"],
+        ],
+    )
+
+    exit_code = cli_main.main(
+        [
+            "validate",
+            str(input_path),
+            "--mode",
+            "hr_consolidator",
+            "--report",
+            str(report_path),
+        ]
+    )
+
+    payload = json.loads(report_path.read_text(encoding="utf-8"))
+    assert exit_code == ExitCode.SUCCESS
+    assert payload["exit_code"] == 0
+    assert payload["files"][0]["rows"] == 2
+    assert payload["errors"] == []
 
 
 def test_cli_system_error_uses_stable_exit_code(
@@ -129,7 +171,7 @@ def test_cli_system_error_uses_stable_exit_code(
 
     monkeypatch.setattr(cli_main, "read_workbook", raise_runtime_error)
 
-    exit_code = cli_main.main([str(input_path), "--report", str(report_path)])
+    exit_code = cli_main.main(["run", str(input_path), "--report", str(report_path)])
 
     payload = json.loads(report_path.read_text(encoding="utf-8"))
     assert exit_code == ExitCode.SYSTEM_ERROR

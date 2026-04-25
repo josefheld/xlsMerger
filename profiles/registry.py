@@ -4,22 +4,14 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 
-from profiles.base import PassthroughProfile, Profile
+from profiles.base import Profile
 from profiles.finance_close import FinanceCloseProfile
+from profiles.hr_consolidator import HrConsolidatorProfile
+from profiles.supplier_normalizer import SupplierNormalizerProfile
 
 
 class ProfileRegistryError(Exception):
     """Raised when a profile mode is not registered."""
-
-
-class SupplierNormalizerProfile(PassthroughProfile):
-    name = "supplier_normalizer"
-    description = "Supplier workbook normalization"
-
-
-class HrConsolidatorProfile(PassthroughProfile):
-    name = "hr_consolidator"
-    description = "HR workbook consolidation"
 
 
 PROFILE_REGISTRY: dict[str, type[Profile]] = {

@@ -21,6 +21,7 @@ from profiles import (
     ProfileConfigError,
     ProfileRegistryError,
     get_profile,
+    iter_profiles,
     list_profile_names,
     load_profile_config,
 )
@@ -31,6 +32,50 @@ def build_parser() -> argparse.ArgumentParser:
         prog="xlsmerger",
         description="Merge and normalize Excel files.",
     )
+    parser.add_argument("--version", action="version", version="xlsmerger 0.1.0")
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    run_parser = subparsers.add_parser(
+        "run",
+        help="Read, validate, transform, and optionally write output",
+        description="Read, validate, transform, and optionally write output.",
+    )
+    add_processing_arguments(run_parser)
+    run_parser.add_argument(
+        "--output",
+        type=Path,
+        default=None,
+        help="Optional .xlsx output workbook path",
+    )
+    run_parser.set_defaults(func=run_command)
+
+    validate_parser = subparsers.add_parser(
+        "validate",
+        help="Validate input workbooks without writing output",
+        description="Validate input workbooks without writing output.",
+    )
+    add_processing_arguments(validate_parser)
+    validate_parser.set_defaults(func=validate_command)
+
+    profiles_parser = subparsers.add_parser(
+        "profiles",
+        help="Inspect available profile modes",
+        description="Inspect available profile modes.",
+    )
+    profiles_subparsers = profiles_parser.add_subparsers(
+        dest="profiles_command", required=True
+    )
+    profiles_list_parser = profiles_subparsers.add_parser(
+        "list",
+        help="List registered profile modes",
+        description="List registered profile modes.",
+    )
+    profiles_list_parser.set_defaults(func=profiles_list_command)
+
+    return parser
+
+
+def add_processing_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("inputs", nargs="*", type=Path, help="Excel files to read")
     parser.add_argument(
         "--mode",
@@ -55,20 +100,15 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Report format; inferred from --report when omitted",
     )
-    parser.add_argument(
-        "--output",
-        type=Path,
-        default=None,
-        help="Optional .xlsx output workbook path",
-    )
-    parser.add_argument("--version", action="version", version="xlsmerger 0.1.0")
-    return parser
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
+    return args.func(args)
 
+
+def run_command(args: argparse.Namespace) -> int:
     report = build_run_report(
         args.inputs,
         mode=args.mode,
@@ -79,12 +119,30 @@ def main(argv: list[str] | None = None) -> int:
     return report.exit_code
 
 
+def validate_command(args: argparse.Namespace) -> int:
+    report = build_run_report(
+        args.inputs,
+        mode=args.mode,
+        config_path=args.config,
+        apply_transforms=False,
+    )
+    write_report(report, args.report, report_format=args.report_format)
+    return report.exit_code
+
+
+def profiles_list_command(args: argparse.Namespace) -> int:
+    for profile_type in iter_profiles():
+        print(f"{profile_type.name}\t{profile_type.description}")
+    return int(ExitCode.SUCCESS)
+
+
 def build_run_report(
     inputs: list[Path],
     *,
     mode: str = "finance_close",
     config_path: Path | None = None,
     output_path: Path | None = None,
+    apply_transforms: bool = True,
 ) -> RunReport:
     files: list[ReportFile] = []
     warnings: list[ReportIssue] = []
@@ -166,6 +224,16 @@ def build_run_report(
             )
             continue
 
+        if not apply_transforms:
+            files.append(
+                ReportFile(
+                    path=str(workbook.path),
+                    sheets=len(workbook.sheets),
+                    rows=sum(len(sheet.rows) for sheet in workbook.sheets),
+                )
+            )
+            continue
+
         try:
             transformed_workbook = profile.transform(workbook, profile_config)
             profile_warnings = profile.postprocess(transformed_workbook, profile_config)
@@ -226,7 +294,16 @@ def build_run_report(
     )
 
 
-__all__ = ["ExitCode", "ReportFormat", "build_parser", "build_run_report", "main"]
+__all__ = [
+    "ExitCode",
+    "ReportFormat",
+    "build_parser",
+    "build_run_report",
+    "main",
+    "profiles_list_command",
+    "run_command",
+    "validate_command",
+]
 
 
 if __name__ == "__main__":

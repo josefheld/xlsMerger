@@ -109,6 +109,7 @@ def test_finance_close_cli_output_file_matches_target_schema(tmp_path: Path) -> 
 
     exit_code = cli_main.main(
         [
+            "run",
             str(input_path),
             "--mode",
             "finance_close",
