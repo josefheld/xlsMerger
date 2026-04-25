@@ -3,3 +3,5 @@
 .idea/vcs.xml
 .idea/workspace.xml
 .idea/xlsMerger.iml
+__pycache__/
+*.pyc
