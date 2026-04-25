@@ -34,6 +34,10 @@ def test_cli_command_help_is_available(
     assert "--mode" in output
     assert "--config" in output
     assert "--report" in output
+    assert "--log-level" in output
+    if command == "run":
+        assert "--dry-run" in output
+        assert "--preview-rows" in output
 
 
 def test_profiles_list_command_outputs_modes(capsys: pytest.CaptureFixture[str]) -> None:

@@ -7,6 +7,7 @@ from core.reporting import (
     ReportIssue,
     RunReport,
     report_exit_code,
+    with_error_troubleshooting,
     write_report,
 )
 from core.writer import WriterError, write_workbook
@@ -26,6 +27,7 @@ __all__ = [
     "merge_workbooks",
     "report_exit_code",
     "read_workbook",
+    "with_error_troubleshooting",
     "write_report",
     "write_workbook",
 ]

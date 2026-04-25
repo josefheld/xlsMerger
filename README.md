@@ -43,7 +43,8 @@ The project now contains an initial product-oriented scaffolding:
 python -m pip install -e ".[dev]"
 xlsmerger --help
 xlsmerger run --report report.json
-xlsmerger validate --mode supplier_normalizer --config profile.yml --report report.json
+xlsmerger run input.xlsx --dry-run --preview-rows 5 --report report.json
+xlsmerger validate --mode supplier_normalizer --config profile.yml --log-level debug --report report.json
 xlsmerger profiles list
 python -m pytest
 python -m ruff check .
@@ -167,6 +168,31 @@ with `--report-format csv`.
 ```bash
 xlsmerger run input.xlsx --report run-report.json
 xlsmerger run input.xlsx --report run-report.csv --report-format csv
+```
+
+Dry-runs validate and transform inputs without writing an output workbook. Reports are still
+written. Use `--preview-rows N` to print the first N transformed rows per sheet and inspect
+the normalized shape before writing files.
+
+```bash
+xlsmerger run input.xlsx --mode hr_consolidator --dry-run --preview-rows 5 --report report.json
+```
+
+Use `--log-level info`, `--log-level warn`, or `--log-level debug` on `run` and `validate`
+to control console logging.
+
+Every report error includes:
+
+- `message` with `Cause:` and `Recommendation:`
+- `cause`
+- `recommendation`
+
+Example profile configurations live in `examples/` and can be executed directly:
+
+```bash
+xlsmerger validate --mode finance_close --config examples/finance.yml --report /tmp/finance-report.json
+xlsmerger validate --mode supplier_normalizer --config examples/supplier.yml --report /tmp/supplier-report.json
+xlsmerger validate --mode hr_consolidator --config examples/hr.yml --report /tmp/hr-report.json
 ```
 
 Exit codes are stable:

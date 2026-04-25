@@ -1,0 +1,17 @@
+mode: supplier_normalizer
+options:
+  header_strategy: first_file
+  default_currency: EUR
+  supplier_name: Example Supplier
+  supplier_name_map:
+    Example Supplier Ltd.: Example Supplier
+  column_synonyms:
+    invoice_id:
+      - Bill ID
+      - Supplier Invoice
+    order_id:
+      - Order Ref
+      - Buyer PO
+    amount:
+      - Gross
+      - Invoice Total

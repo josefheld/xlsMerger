@@ -42,7 +42,11 @@ def test_json_report_export_contains_files_rows_warnings_and_errors(tmp_path: Pa
     assert payload["files"] == [{"path": "input.xlsx", "rows": 42, "sheets": 2}]
     assert payload["total_rows"] == 42
     assert payload["warnings"][0]["code"] == "sample_warning"
-    assert payload["errors"][0]["message"] == "error message"
+    assert payload["errors"][0]["message"].startswith("error message")
+    assert "Cause:" in payload["errors"][0]["message"]
+    assert "Recommendation:" in payload["errors"][0]["message"]
+    assert payload["errors"][0]["cause"]
+    assert payload["errors"][0]["recommendation"]
 
 
 def test_csv_report_export_contains_summary_file_and_issue_rows(tmp_path: Path) -> None:
@@ -98,6 +102,10 @@ def test_cli_run_writes_machine_readable_report_for_validation_error(tmp_path: P
     assert payload["exit_code"] == 1
     assert payload["errors"][0]["code"] == "reader_error"
     assert "does not exist" in payload["errors"][0]["message"]
+    assert "Cause:" in payload["errors"][0]["message"]
+    assert "Recommendation:" in payload["errors"][0]["message"]
+    assert payload["errors"][0]["cause"] == "The input workbook could not be opened or parsed."
+    assert payload["errors"][0]["recommendation"].startswith("Check that the file exists")
 
 
 def test_cli_run_writes_csv_report_when_requested(tmp_path: Path) -> None:
@@ -157,6 +165,76 @@ def test_cli_validate_writes_report_without_transforming(tmp_path: Path) -> None
     assert payload["exit_code"] == 0
     assert payload["files"][0]["rows"] == 2
     assert payload["errors"] == []
+
+
+def test_cli_dry_run_writes_report_but_no_output_file(tmp_path: Path) -> None:
+    input_path = tmp_path / "input.xlsx"
+    output_path = tmp_path / "dry-run-output.xlsx"
+    report_path = tmp_path / "dry-run-report.json"
+    write_xlsx(
+        input_path,
+        [
+            ["employee_id", "first_name", "last_name", "hire_date"],
+            ["EMP-001", "Ada", "Lovelace", "2026-01-01"],
+        ],
+    )
+
+    exit_code = cli_main.main(
+        [
+            "run",
+            str(input_path),
+            "--mode",
+            "hr_consolidator",
+            "--output",
+            str(output_path),
+            "--dry-run",
+            "--report",
+            str(report_path),
+        ]
+    )
+
+    payload = json.loads(report_path.read_text(encoding="utf-8"))
+    assert exit_code == ExitCode.SUCCESS
+    assert report_path.exists()
+    assert not output_path.exists()
+    assert payload["warnings"][0]["code"] == "dry_run_output_skipped"
+
+
+def test_cli_run_prints_statistics_and_preview(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    input_path = tmp_path / "input.xlsx"
+    report_path = tmp_path / "preview-report.json"
+    write_xlsx(
+        input_path,
+        [
+            ["employee_id", "first_name", "last_name", "hire_date"],
+            ["EMP-001", "Ada", "Lovelace", "2026-01-01"],
+        ],
+    )
+
+    exit_code = cli_main.main(
+        [
+            "run",
+            str(input_path),
+            "--mode",
+            "hr_consolidator",
+            "--preview-rows",
+            "2",
+            "--report",
+            str(report_path),
+        ]
+    )
+
+    output = capsys.readouterr().out
+    assert exit_code == ExitCode.SUCCESS
+    assert "Run statistics" in output
+    assert "files: 1" in output
+    assert "rows: 2" in output
+    assert "Preview first 2 rows" in output
+    assert "EMP-001" in output
+    assert "***MASKED***" in output
+    assert "Ada" not in output
 
 
 def test_cli_system_error_uses_stable_exit_code(

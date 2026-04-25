@@ -1,0 +1,13 @@
+mode: hr_consolidator
+options:
+  header_strategy: first_file
+  mask_fields:
+    - first_name
+    - last_name
+    - email
+  mask_token: "***MASKED***"
+  column_synonyms:
+    employee_id:
+      - Staff ID
+    hire_date:
+      - Start Date
