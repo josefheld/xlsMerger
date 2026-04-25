@@ -17,10 +17,24 @@ dependencies = [
   "xlrd>=2.0.1"
 ]
 
+[project.optional-dependencies]
+dev = [
+  "pytest>=7.0",
+  "ruff>=0.8",
+  "xlwt>=1.3"
+]
+
+[project.scripts]
+xlsmerger = "cli.main:main"
+
+[tool.setuptools.packages.find]
+include = ["cli*", "core*", "profiles*"]
+exclude = ["Originale*", "dist*", "tests*", "examples*", "docs*"]
+
 [tool.ruff]
 line-length = 100
 target-version = "py310"
-exclude = ["dist", "xlsMerger.py"]
+exclude = ["dist"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP"]

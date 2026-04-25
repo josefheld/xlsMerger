@@ -1,36 +1,33 @@
-from openpyxl import Workbook
-from openpyxl import load_workbook
-from openpyxl.compat import range
-from openpyxl.utils import get_column_letter
-from os import listdir
-from os.path import isfile, join
 import os
+
 import xlrd
-from openpyxl.workbook import Workbook as openpyxlWorkbook
-from openpyxl.styles import Font, Color, PatternFill
+from openpyxl import Workbook
+from openpyxl.styles import Font, PatternFill
 
-def open_xls_as_xlsx(filename):
-    xlsBook = xlrd.open_workbook(filename=filename)
-    workbook = openpyxlWorkbook()
 
-    for i in xrange(0, xlsBook.nsheets):
-        xlsSheet = xlsBook.sheet_by_index(i)
-        sheet = workbook.active if i == 0 else workbook.create_sheet()
-        sheet.title = xlsSheet.name
+def open_xls_as_xlsx(filename: str) -> Workbook:
+    xls_book = xlrd.open_workbook(filename=filename)
+    workbook = Workbook()
 
-        for row in xrange(0, xlsSheet.nrows):
-            for col in xrange(0, xlsSheet.ncols):
-                sheet.cell(row=row + 1, column=col + 1).value = xlsSheet.cell_value(row, col)
+    for sheet_index in range(0, xls_book.nsheets):
+        xls_sheet = xls_book.sheet_by_index(sheet_index)
+        sheet = workbook.active if sheet_index == 0 else workbook.create_sheet()
+        sheet.title = xls_sheet.name
+
+        for row in range(0, xls_sheet.nrows):
+            for col in range(0, xls_sheet.ncols):
+                sheet.cell(row=row + 1, column=col + 1).value = xls_sheet.cell_value(row, col)
     return workbook
 
-def main():
+
+def main() -> None:
     combined_wb = Workbook()
     del combined_wb['Sheet']
     mypath = './Originale'
-    filenames = [f for f in listdir(mypath) if isfile(join(mypath, f))]
+    filenames = [f for f in os.listdir(mypath) if os.path.isfile(os.path.join(mypath, f))]
 
     file_count = 0
-    last_row_num = {}
+    last_row_num: dict[str, int] = {}
     for filename in filenames:
         if not filename.endswith('xls') or filename.endswith('xlsx'):
             continue
@@ -40,54 +37,56 @@ def main():
         converted_original_book.Template = False
 
         for sheetname in converted_original_book.sheetnames:
-            if sheetname not in last_row_num.iterkeys():
+            if sheetname not in last_row_num:
                 last_row_num[sheetname] = 0
 
         for sheetname in converted_original_book.sheetnames:
-            if not combined_wb.__contains__(sheetname):
-               combined_wb.create_sheet(title=sheetname)
+            if sheetname not in combined_wb.sheetnames:
+                combined_wb.create_sheet(title=sheetname)
             old_sheet = converted_original_book[sheetname]
             new_sheet = combined_wb[sheetname]
 
-
-            finished_row = False
-
             start_row = 1 if file_count == 0 else 2
+            rows_copied = 0
 
-            for row_num in range(start_row, 1000):
+            for row_num in range(start_row, old_sheet.max_row + 1):
+                first_cell_value = old_sheet.cell(row=row_num, column=1).value
+                if first_cell_value is None:
+                    break
 
-                emptyCellCheck_1 = old_sheet.cell(row=row_num, column=1).value
-                if emptyCellCheck_1 is None:
-                    break;
-
-                for col_num in range(1, 100):
-                    emptyCellCheck_2 = old_sheet.cell(row=row_num, column=col_num).value
-                    if emptyCellCheck_2 is None:
-                        finished_row = True
+                for col_num in range(1, old_sheet.max_column + 1):
+                    cell_value = old_sheet.cell(row=row_num, column=col_num).value
+                    if cell_value is None:
                         break
                     ft1 = Font(name='Arial', size=10, color='FF000000')
                     if row_num == 1:
                         ft1 = Font(name='Arial', size=10, color='FFFFFFFF')
-                        fill = PatternFill(fill_type='lightTrellis', start_color = 'FF1C0082', end_color = 'FF1C0082')
+                        fill = PatternFill(
+                            fill_type='lightTrellis',
+                            start_color='FF1C0082',
+                            end_color='FF1C0082',
+                        )
                     else:
                         ft1 = Font(name='Arial', size=10, color='FF000000')
-                        fill = PatternFill(fill_type='lightTrellis', start_color = 'FFFFFFFF', end_color = 'FFFFFFFF')
-                    new_cell = new_sheet.cell(row=row_num+last_row_num[sheetname], column=col_num)
-                    new_cell.value = old_sheet.cell(row=row_num, column=col_num).value
+                        fill = PatternFill(
+                            fill_type='lightTrellis',
+                            start_color='FFFFFFFF',
+                            end_color='FFFFFFFF',
+                        )
+                    new_cell = new_sheet.cell(row=row_num + last_row_num[sheetname], column=col_num)
+                    new_cell.value = cell_value
                     new_cell.font = ft1
                     new_cell.fill = fill
 
+                rows_copied += 1
 
-            last_row_num[sheetname] = last_row_num[sheetname] + row_num-2
-        file_count = file_count + 1
-                #if finished_row == True:
-                #    break
-
-
+            last_row_num[sheetname] += rows_copied
+        file_count += 1
 
     dest_filename = 'Merged.xlsx'
 
     combined_wb.save(filename=dest_filename)
 
 
-if __name__ == '__main__': main()
+if __name__ == '__main__':
+    main()

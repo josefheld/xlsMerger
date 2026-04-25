@@ -40,9 +40,28 @@ The project now contains an initial product-oriented scaffolding:
 ## Quick checks
 
 ```bash
+python -m pip install -e ".[dev]"
+xlsmerger --help
+xlsmerger --report report.json
 python -m pytest
 python -m ruff check .
 ```
+
+## Reports and exit codes
+
+Regular CLI runs create a machine-readable report. JSON is the default; CSV can be selected
+with `--report-format csv`.
+
+```bash
+xlsmerger input.xlsx --report run-report.json
+xlsmerger input.xlsx --report run-report.csv --report-format csv
+```
+
+Exit codes are stable:
+
+- `0` success
+- `1` validation error
+- `2` system error
 
 ## Legacy notes
 
@@ -51,4 +70,5 @@ The legacy script and build spec are still present:
 - `xlsMerger.py`
 - `xlsMerger.spec`
 
-They will be migrated incrementally during upcoming sprint tasks.
+`xlsMerger.py` is importable under Python 3 and will be migrated into the new package structure
+incrementally during upcoming sprint tasks.
