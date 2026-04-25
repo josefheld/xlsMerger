@@ -43,8 +43,25 @@ The project now contains an initial product-oriented scaffolding:
 python -m pip install -e ".[dev]"
 xlsmerger --help
 xlsmerger --report report.json
+xlsmerger --mode supplier_normalizer --config profile.yml --report report.json
 python -m pytest
 python -m ruff check .
+```
+
+## Profiles
+
+Runs use a selectable profile mode:
+
+- `finance_close`
+- `supplier_normalizer`
+- `hr_consolidator`
+
+Select a mode with `--mode`. Optional YAML configuration is passed with `--config`.
+
+```yaml
+mode: supplier_normalizer
+options:
+  header_strategy: first_file
 ```
 
 ## Reports and exit codes
