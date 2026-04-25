@@ -5,15 +5,11 @@ from __future__ import annotations
 from collections.abc import Iterable
 
 from profiles.base import PassthroughProfile, Profile
+from profiles.finance_close import FinanceCloseProfile
 
 
 class ProfileRegistryError(Exception):
     """Raised when a profile mode is not registered."""
-
-
-class FinanceCloseProfile(PassthroughProfile):
-    name = "finance_close"
-    description = "Finance close workbook consolidation"
 
 
 class SupplierNormalizerProfile(PassthroughProfile):

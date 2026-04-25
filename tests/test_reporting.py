@@ -70,7 +70,9 @@ def test_cli_run_writes_machine_readable_report_for_success(tmp_path: Path) -> N
     report_path = tmp_path / "run-report.json"
     write_xlsx(input_path, [["name"], ["A"]])
 
-    exit_code = cli_main.main([str(input_path), "--report", str(report_path)])
+    exit_code = cli_main.main(
+        [str(input_path), "--mode", "supplier_normalizer", "--report", str(report_path)]
+    )
 
     payload = json.loads(report_path.read_text(encoding="utf-8"))
     assert exit_code == ExitCode.SUCCESS
@@ -98,7 +100,15 @@ def test_cli_run_writes_csv_report_when_requested(tmp_path: Path) -> None:
     write_xlsx(input_path, [["name"], ["A"]])
 
     exit_code = cli_main.main(
-        [str(input_path), "--report", str(report_path), "--report-format", "csv"]
+        [
+            str(input_path),
+            "--mode",
+            "supplier_normalizer",
+            "--report",
+            str(report_path),
+            "--report-format",
+            "csv",
+        ]
     )
 
     rows = list(csv.DictReader(report_path.open(encoding="utf-8", newline="")))

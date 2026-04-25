@@ -64,6 +64,34 @@ options:
   header_strategy: first_file
 ```
 
+### `finance_close`
+
+Required input columns:
+
+- `date`
+- `account`
+- `debit`
+- `credit`
+- `balance`
+
+Optional input column:
+
+- `description`
+
+Dates must use `YYYY-MM-DD` or native spreadsheet date values. `debit`, `credit`, and
+`balance` must be numeric. The profile checks that `sum(debit) - sum(credit)` matches the
+closing balance within `balance_tolerance` (default `0.01`).
+
+The normalized output schema is:
+
+```text
+date, account, description, debit, credit, balance
+```
+
+```bash
+xlsmerger close.xlsx --mode finance_close --output finance-output.xlsx --report report.json
+```
+
 ## Reports and exit codes
 
 Regular CLI runs create a machine-readable report. JSON is the default; CSV can be selected

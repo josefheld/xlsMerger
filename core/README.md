@@ -35,3 +35,7 @@ Exit codes are:
 - `0` success
 - `1` validation error
 - `2` system error
+
+## Writer API
+
+`core.writer.write_workbook()` writes `WorkbookData` to `.xlsx` output files.

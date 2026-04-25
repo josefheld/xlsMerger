@@ -5,7 +5,8 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from core.reader import ReaderError, read_workbook
+from core.merge import MergeError, merge_workbooks
+from core.reader import ReaderError, WorkbookData, read_workbook
 from core.reporting import (
     ExitCode,
     ReportFile,
@@ -15,6 +16,7 @@ from core.reporting import (
     report_exit_code,
     write_report,
 )
+from core.writer import WriterError, write_workbook
 from profiles import (
     ProfileConfigError,
     ProfileRegistryError,
@@ -53,6 +55,12 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Report format; inferred from --report when omitted",
     )
+    parser.add_argument(
+        "--output",
+        type=Path,
+        default=None,
+        help="Optional .xlsx output workbook path",
+    )
     parser.add_argument("--version", action="version", version="xlsmerger 0.1.0")
     return parser
 
@@ -61,7 +69,12 @@ def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
 
-    report = build_run_report(args.inputs, mode=args.mode, config_path=args.config)
+    report = build_run_report(
+        args.inputs,
+        mode=args.mode,
+        config_path=args.config,
+        output_path=args.output,
+    )
     write_report(report, args.report, report_format=args.report_format)
     return report.exit_code
 
@@ -71,10 +84,12 @@ def build_run_report(
     *,
     mode: str = "finance_close",
     config_path: Path | None = None,
+    output_path: Path | None = None,
 ) -> RunReport:
     files: list[ReportFile] = []
     warnings: list[ReportIssue] = []
     errors: list[ReportIssue] = []
+    transformed_workbooks: list[WorkbookData] = []
     has_system_errors = False
 
     try:
@@ -126,6 +141,32 @@ def build_run_report(
 
         try:
             validation_errors = profile.validate(workbook, profile_config)
+        except Exception as exc:
+            has_system_errors = True
+            errors.append(
+                ReportIssue(
+                    code="profile_error",
+                    message=(
+                        f"Unexpected profile error in mode '{mode}' "
+                        f"while validating '{input_path}': {exc}"
+                    ),
+                    path=str(input_path),
+                )
+            )
+            continue
+
+        if validation_errors:
+            errors.extend(validation_errors)
+            files.append(
+                ReportFile(
+                    path=str(workbook.path),
+                    sheets=len(workbook.sheets),
+                    rows=sum(len(sheet.rows) for sheet in workbook.sheets),
+                )
+            )
+            continue
+
+        try:
             transformed_workbook = profile.transform(workbook, profile_config)
             profile_warnings = profile.postprocess(transformed_workbook, profile_config)
         except Exception as exc:
@@ -142,7 +183,6 @@ def build_run_report(
             )
             continue
 
-        errors.extend(validation_errors)
         warnings.extend(profile_warnings)
         row_count = sum(len(sheet.rows) for sheet in transformed_workbook.sheets)
         files.append(
@@ -152,6 +192,26 @@ def build_run_report(
                 rows=row_count,
             )
         )
+        transformed_workbooks.append(transformed_workbook)
+
+    if output_path is not None and transformed_workbooks and not errors and not has_system_errors:
+        header_strategy = str(profile_config.options.get("header_strategy", "first_file"))
+        try:
+            merged_workbook = merge_workbooks(
+                transformed_workbooks,
+                header_strategy=header_strategy,  # type: ignore[arg-type]
+                output_path=output_path,
+            )
+            write_workbook(merged_workbook, output_path)
+        except (MergeError, WriterError) as exc:
+            has_system_errors = True
+            errors.append(
+                ReportIssue(
+                    code="output_error",
+                    message=f"Output workbook '{output_path}' could not be written: {exc}",
+                    path=str(output_path),
+                )
+            )
 
     exit_code = report_exit_code(
         has_validation_errors=bool(errors) and not has_system_errors,

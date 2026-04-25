@@ -9,6 +9,7 @@ from core.reporting import (
     report_exit_code,
     write_report,
 )
+from core.writer import WriterError, write_workbook
 
 __all__ = [
     "ExitCode",
@@ -21,8 +22,10 @@ __all__ = [
     "RunReport",
     "SheetData",
     "WorkbookData",
+    "WriterError",
     "merge_workbooks",
     "report_exit_code",
     "read_workbook",
     "write_report",
+    "write_workbook",
 ]
